@@ -13,12 +13,13 @@ import numpy as np
 np.set_printoptions(precision=4, suppress=True, linewidth=200)
 
 os.environ["RWKV_JIT_ON"] = '1'
-os.environ["RWKV_CUDA_ON"] = '0'
+os.environ["RWKV_MUSA_ON"] = '1'
 
-MODEL_NAME = '/fsx/BlinkDL/HF-MODEL/rwkv-4-world/RWKV-4-World-0.1B-v1-20230520-ctx4096'
+MODEL_NAME = '/home/mt_developer/data/rwkv-models/RWKV-4-World-0.1B-v1-20230520-ctx4096.pth'
 
 print(f'\nLoading ChatRWKV https://github.com/BlinkDL/ChatRWKV')
 import torch
+import torch_musa
 torch.backends.cudnn.benchmark = True
 torch.backends.cudnn.allow_tf32 = True
 torch.backends.cuda.matmul.allow_tf32 = True
@@ -28,7 +29,7 @@ from rwkv.model import RWKV
 from rwkv.utils import PIPELINE, PIPELINE_ARGS
 
 print(f'Loading model - {MODEL_NAME}')
-model = RWKV(model=MODEL_NAME, strategy='cuda fp32') # !!! currenly World models will overflow in fp16 !!!
+model = RWKV(model=MODEL_NAME, strategy='musa fp32') # !!! currenly World models will overflow in fp16 !!!
 pipeline = PIPELINE(model, "rwkv_vocab_v20230424") # !!! update rwkv pip package to 0.7.4+ !!!
 
 ########################################################################################################

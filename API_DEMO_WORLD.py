@@ -10,7 +10,7 @@ import os, re
 
 os.environ["RWKV_JIT_ON"] = "1"  #### set these before import RWKV
 os.environ[
-    "RWKV_CUDA_ON"
+    "RWKV_MUSA_ON"
 ] = "0"  #### set to '1' to compile CUDA kernel (10x faster) - requires c++ compiler & cuda libraries
 
 from rwkv.model import RWKV  #### pip install rwkv --upgrade

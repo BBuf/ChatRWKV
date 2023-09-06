@@ -13,15 +13,16 @@ import numpy as np
 np.set_printoptions(precision=4, suppress=True, linewidth=200)
 
 os.environ["RWKV_JIT_ON"] = '1'
-os.environ["RWKV_CUDA_ON"] = '0' # set to '1' for faster processing
+os.environ["RWKV_MUSA_ON"] = '0' # set to '1' for faster processing
 
 # MODEL_NAME = '/fsx/BlinkDL/HF-MODEL/rwkv-4-raven/RWKV-4-Raven-1B5-v11-Eng99%-Other1%-20230425-ctx4096'
 # MODEL_NAME = '/fsx/BlinkDL/HF-MODEL/rwkv-4-raven/RWKV-4-Raven-3B-v11-Eng99%-Other1%-20230425-ctx4096'
-MODEL_NAME = '/fsx/BlinkDL/HF-MODEL/rwkv-4-raven/RWKV-4-Raven-7B-v11x-Eng99%-Other1%-20230429-ctx8192'
+MODEL_NAME = '/home/mt_developer/data/rwkv-models/RWKV-4-World-0.1B-v1-20230520-ctx4096.pth'
 # MODEL_NAME = '/fsx/BlinkDL/HF-MODEL/rwkv-4-raven/RWKV-4-Raven-14B-v11x-Eng99%-Other1%-20230501-ctx8192'
 
 print(f'\nLoading ChatRWKV https://github.com/BlinkDL/ChatRWKV')
 import torch
+import torch_musa
 torch.backends.cudnn.benchmark = True
 torch.backends.cudnn.allow_tf32 = True
 torch.backends.cuda.matmul.allow_tf32 = True
@@ -31,7 +32,7 @@ from rwkv.model import RWKV
 from rwkv.utils import PIPELINE, PIPELINE_ARGS
 
 print(f'Loading model - {MODEL_NAME}')
-model = RWKV(model=MODEL_NAME, strategy='cuda fp16')
+model = RWKV(model=MODEL_NAME, strategy='musa fp32')
 pipeline = PIPELINE(model, "20B_tokenizer.json")
 
 ########################################################################################################

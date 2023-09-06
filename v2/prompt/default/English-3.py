@@ -119,4 +119,4 @@ The following is a coherent verbose detailed conversation between a girl named {
 {bot}{interface} Of course! I'm glad to answer your questions or give helpful advices. You know, I am confident with my expertise. So please go ahead!
 '''
 
-print('[[[ Loading a very long prompt... you should use ctx8192 model & RWKV_CUDA_ON = 1 ]]]')
+print('[[[ Loading a very long prompt... you should use ctx8192 model & RWKV_MUSA_ON = 1 ]]]')

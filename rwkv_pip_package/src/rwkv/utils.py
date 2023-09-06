@@ -80,6 +80,7 @@ class PIPELINE():
                 probs[sorted_ids[:-top_k]] = 0
             if temperature != 1.0:
                 probs = probs ** (1.0 / temperature)
+            probs = probs.to("cpu")
             out = torch.multinomial(probs, num_samples=1)[0]
             return int(out)
     

@@ -25,7 +25,7 @@ else:
     MyFunction = __nop
     MyStatic = __nop
 
-if os.environ.get('RWKV_CUDA_ON') == '1':
+if os.environ.get('RWKV_MUSA_ON') == '1':
     from torch.utils.cpp_extension import load
     try:
         load(
@@ -83,9 +83,9 @@ if os.environ.get('RWKV_CUDA_ON') == '1':
         torch.ops.rwkv.mm8_one(N, M, x, w, mx, rx, my, ry, y)
         return y.to(dtype=x.dtype)
 else:
-    os.environ["RWKV_CUDA_ON"] = '0'
+    os.environ["RWKV_MUSA_ON"] = '0'
 
-if os.environ.get('RWKV_CUDA_ON') == '1' and not DISABLE_CUBLAS_GEMM:
+if os.environ.get('RWKV_MUSA_ON') == '1' and not DISABLE_CUBLAS_GEMM:
     @MyStatic
     def gemm(a, b, output_dtype: Optional[torch.dtype]=None):
         if output_dtype is None:
@@ -123,7 +123,7 @@ class RWKV(MyModule):
         else:
             prxxx = lambda *args, **kwargs: None
 
-        STRATEGY_REGEX = r"^(?:(?:^|->) *(?:cuda(?::[\d]+)?|cpu|mps) (?:fp(?:16|32)|bf16)(?:i8|i4|i3)?(?: \*[\d]+\+?)? *)+$"
+        STRATEGY_REGEX = r"^(?:(?:^|->) *(?:musa(?::[\d]+)?|cpu|mps) (?:fp(?:16|32)|bf16)(?:i8|i4|i3)?(?: \*[\d]+\+?)? *)+$"
         if not re.match(STRATEGY_REGEX, strategy):
             raise ValueError("Invalid strategy. Please read https://pypi.org/project/rwkv/")
 
@@ -135,7 +135,7 @@ class RWKV(MyModule):
 
         # Rescale for fp16 mode: set x = x/2 every X layer (to avoid fp16 overflow)
         self.RESCALE_LAYER = 6 if 'fp16' in strategy else 0
-        prxxx(f'RWKV_JIT_ON {os.environ["RWKV_JIT_ON"]} RWKV_CUDA_ON {os.environ["RWKV_CUDA_ON"]} RESCALE_LAYER {self.RESCALE_LAYER}\n')
+        prxxx(f'RWKV_JIT_ON {os.environ["RWKV_JIT_ON"]} RWKV_MUSA_ON {os.environ["RWKV_MUSA_ON"]} RESCALE_LAYER {self.RESCALE_LAYER}\n')
 
         args.MODEL_NAME = args.MODEL_NAME.strip()
         if not args.MODEL_NAME.endswith('.pth'):
@@ -397,7 +397,7 @@ class RWKV(MyModule):
     def torch_mm8_one(self, x, w, mx, rx, my, ry):
         return x @ ((w.to(dtype=x.dtype) + 0.5) * ry * rx + my + mx)
 
-    if os.environ.get('RWKV_CUDA_ON') == '1':
+    if os.environ.get('RWKV_MUSA_ON') == '1':
         @MyFunction
         def mm8_seq(self, x, w, mx, rx, my, ry):
             if w.device.type == 'cuda' and x.dtype == torch.float16:
@@ -722,7 +722,7 @@ class RWKV(MyModule):
 
     ########################################################################################################
 
-    if os.environ["RWKV_CUDA_ON"] == '1':
+    if os.environ["RWKV_MUSA_ON"] == '1':
         @MyFunction
         def cuda_att_seq(self, x, sx, aa, bb, pp, ln_w, ln_b, k_mix, v_mix, r_mix, t_decay, t_first, kw, vw, rw, ow, kmx, krx, kmy, kry, vmx, vrx, vmy, vry, rmx, rrx, rmy, rry, omx, orx, omy, ory):
             T, C = x.shape
@@ -799,7 +799,7 @@ class RWKV(MyModule):
                 atype = dd.atype
                 wtype = dd.wtype
                 if seq_mode:
-                    if 'cuda' in str(dev) and os.environ["RWKV_CUDA_ON"] == '1':
+                    if 'cuda' in str(dev) and os.environ["RWKV_MUSA_ON"] == '1':
                         ATT = self.cuda_att_seq if wtype != torch.uint8 else self.cuda_att_seq_i8
                     else:
                         ATT = self.att_seq if wtype != torch.uint8 else self.att_seq_i8

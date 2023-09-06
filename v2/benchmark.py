@@ -18,20 +18,22 @@ with open(f"{current_path}/../misc/lambada_test.jsonl", "r", encoding="utf-8") a
 ########################################################################################################
 
 os.environ["RWKV_JIT_ON"] = '1'
-os.environ["RWKV_CUDA_ON"] = '1'
+os.environ["RWKV_MUSA_ON"] = '0'
 
 # MODEL_NAME = '/fsx/BlinkDL/HF-MODEL/rwkv-4-pile-14b/RWKV-4-Pile-14B-20230213-8019'
 # MODEL_NAME = '/fsx/BlinkDL/HF-MODEL/rwkv-4-pile-1b5/RWKV-4-Pile-1B5-20220903-8040'
 # MODEL_NAME = '/fsx/BlinkDL/HF-MODEL/rwkv-4-pile-7b/RWKV-4-Pile-7B-20230109-ctx4096'
-MODEL_NAME = '/fsx/BlinkDL/HF-MODEL/rwkv-4-pile-3b/RWKV-4-Pile-3B-20221110-ctx4096'
+MODEL_NAME = '/home/mt_developer/data/rwkv-models/RWKV-4-World-0.1B-v1-20230520-ctx4096.pth'
 # MODEL_NAME = '/fsx/BlinkDL/HF-MODEL/rwkv-4-pile-169m/RWKV-4-Pile-169M-20220807-8023'
 
 PAD_SEQ = [187]
+BENCHMARK_LOOP = 50
 
 ########################################################################################################
 
 print(f'\nLoading ChatRWKV https://github.com/BlinkDL/ChatRWKV')
 import torch
+import torch_musa
 torch.backends.cudnn.benchmark = True
 torch.backends.cudnn.allow_tf32 = True
 torch.backends.cuda.matmul.allow_tf32 = True
@@ -49,7 +51,7 @@ from rwkv.model import RWKV
 from rwkv.utils import PIPELINE, PIPELINE_ARGS
 
 print(f'Loading model - {MODEL_NAME}')
-model = RWKV(model=MODEL_NAME, strategy='cuda fp16')
+model = RWKV(model=MODEL_NAME, strategy='musa fp32')
 # model = RWKV(model=MODEL_NAME, strategy='cuda fp16 *0+')
 # model = RWKV(model=MODEL_NAME, strategy='cuda fp16 *10+')
 # model = RWKV(model=MODEL_NAME, strategy='cuda fp16i8')
@@ -96,21 +98,15 @@ def record_time(name):
     if tt < time_slot[name]:
         time_slot[name] = tt
 
-for i in range(10):
-    time_ref = time.time_ns()
+time_ref = time.time_ns()
+for i in range(BENCHMARK_LOOP):
     out, state = model.forward(init_token, None)
     aa = out.detach().cpu().numpy()
-    record_time('fast')
-    print(f"fast {round(time_slot['fast'], 4)}s {aa}")
+record_time('benchmark')
+tokens_per_second = BENCHMARK_LOOP * len(init_token) / time_slot['benchmark']
+print('tokens/s => :', round(tokens_per_second, 2))
 
-    time_ref = time.time_ns()
-    for j in range(len(init_token)):
-        out, state = model.forward([init_token[j]], None if j == 0 else state)
-    aa = out.detach().cpu().numpy()
-    record_time('slow')
-    print(f"slow {round(time_slot['slow'], 4)}s {aa}")
-
-# exit(0)
+exit(0)
 
 ########################################################################################################
 

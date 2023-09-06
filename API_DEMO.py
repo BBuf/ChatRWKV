@@ -33,7 +33,7 @@ np.set_printoptions(precision=4, suppress=True, linewidth=200)
 ########################################################################################################
 # set these before import RWKV
 os.environ['RWKV_JIT_ON'] = '1'
-os.environ["RWKV_CUDA_ON"] = '0' # '1' to compile CUDA kernel (10x faster), requires c++ compiler & cuda libraries
+os.environ["RWKV_MUSA_ON"] = '0' # '1' to compile CUDA kernel (10x faster), requires c++ compiler & cuda libraries
 
 from rwkv.model import RWKV # pip install rwkv
 model = RWKV(model='/fsx/BlinkDL/HF-MODEL/rwkv-4-pile-169m/RWKV-4-Pile-169M-20220807-8023', strategy='cuda fp16')
@@ -81,7 +81,7 @@ args = PIPELINE_ARGS(temperature = 1.0, top_p = 0.7, top_k=0, # top_k = 0 then i
                      chunk_len = 256) # split input into chunks to save VRAM (shorter -> slower)
 
 ########################################################################################################
-# 1. set os.environ["RWKV_CUDA_ON"] = '1' if possible, for faster preprocess of a long ctx.
+# 1. set os.environ["RWKV_MUSA_ON"] = '1' if possible, for faster preprocess of a long ctx.
 # 2. Reuse the state (use deepcopy to clone it) when you are running the same ctx multiple times. 
 pipeline.generate(ctx, token_count=200, args=args, callback=my_print)
 

@@ -11,7 +11,7 @@ Note: RWKV-4-World is the best model: generation & chat & code in 100+ world lan
 
 Use v2/convert_model.py to convert a model for a strategy, for faster loading & saves CPU RAM.
 
-Note RWKV_CUDA_ON will build a CUDA kernel (much faster & saves VRAM). Here is how to build it ("pip install ninja" first):
+Note RWKV_MUSA_ON will build a CUDA kernel (much faster & saves VRAM). Here is how to build it ("pip install ninja" first):
 ```
 # How to build in Linux: set these and run v2/chat.py
 export PATH=/usr/local/cuda/bin:$PATH
@@ -56,7 +56,7 @@ More RWKV projects: https://github.com/search?o=desc&q=rwkv&s=updated&type=Repos
 ChatRWKV v2: with "stream" and "split" strategies, and INT8. 3G VRAM is enough to run RWKV 14B :) https://github.com/BlinkDL/ChatRWKV/tree/main/v2
 ```python
 os.environ["RWKV_JIT_ON"] = '1'
-os.environ["RWKV_CUDA_ON"] = '0' # if '1' then use CUDA kernel for seq mode (much faster)
+os.environ["RWKV_MUSA_ON"] = '0' # if '1' then use CUDA kernel for seq mode (much faster)
 from rwkv.model import RWKV                         # pip install rwkv
 model = RWKV(model='/fsx/BlinkDL/HF-MODEL/rwkv-4-pile-1b5/RWKV-4-Pile-1B5-20220903-8040', strategy='cuda fp16')
 
