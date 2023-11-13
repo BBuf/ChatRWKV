@@ -12,7 +12,27 @@ torch.backends.cuda.matmul.allow_tf32 = True
 current_path = os.path.dirname(os.path.abspath(__file__))
 
 ########################################################################################################
+def RUN_FORMULA_1A(B, T, C, H, r, k, v, w, u):
+    N = C // H
+    r = r.view(B, T, H, N)
+    k = k.view(B, T, H, N)
+    v = v.view(B, T, H, N)
+    w = w.view(H, N)
+    u = u.view(H, N)
+    out = torch.zeros((B, T, H, N), device="cuda")
 
+    for b in range(B):
+        for h in range(H):
+            state = torch.zeros((N,N), device="cuda").contiguous()
+            for t in range(T):
+                for i in range(N):
+                    for j in range(N):
+                        x = k[b,t,h,j] * v[b,t,h,i]
+                        s = state[i,j]
+                        out[b,t,h,i] += r[b,t,h,j] * (u[h,j] * x + s)
+                        state[i,j] = s * w[h,j] + x
+
+    return out.view(B, T, C)
 if os.environ.get('RWKV_JIT_ON') != '0':
     os.environ["RWKV_JIT_ON"] = '1'
     MyModule = torch.jit.ScriptModule
@@ -753,8 +773,6 @@ class RWKV(MyModule):
 
         return x + out, xx[-1,:], s
 
-    ########################################################################################################
-
     if os.environ["RWKV_CUDA_ON"] == '1':
         @MyFunction
         def cuda_att_seq(self, x, sx, aa, bb, pp, ln_w, ln_b, k_mix, v_mix, r_mix, t_decay, t_first, kw, vw, rw, ow, kmx, krx, kmy, kry, vmx, vrx, vmy, vry, rmx, rrx, rmy, rry, omx, orx, omy, ory):
@@ -773,6 +791,7 @@ class RWKV(MyModule):
             out = matmul(r * y.to(x.dtype), ow, omx, orx, omy, ory)
             return x + out, xx[-1,:], aa, bb, pp
 
+        ########################################################################################################
         # NOTE: decorate with @MyFunction causes JIT error
         def cuda_att_seq_v5_2(self, x, sx, s, ln_w, ln_b, lx_w, lx_b, k_mix, v_mix, r_mix, g_mix, t_decay, t_first, kw, vw, rw, gw, ow, kmx, krx, kmy, kry, vmx, vrx, vmy, vry, rmx, rrx, rmy, rry, gmx, grx, gmy, gry, omx, orx, omy, ory):
             xx = F.layer_norm(x, (x.shape[-1],), weight=ln_w, bias=ln_b)
@@ -791,12 +810,20 @@ class RWKV(MyModule):
             v = matmul(vx, vw, vmx, vrx, vmy, vry, output_dtype=torch.float32)
             g = F.silu(matmul(gx, gw, gmx, grx, gmy, gry))
 
-            out, s = self.RUN_RWKV_5(1, T, self.args.n_att, H, s.transpose(-1,-2).contiguous(), r, k, v, w=t_decay, u=t_first)
-            s = s.transpose(-1,-2)
+            out, s = self.RUN_RWKV_5(1, T, self.args.n_att, H, s, r, k, v, w=t_decay, u=t_first)
+            # out = RUN_FORMULA_1A(1, T, self.args.n_att, H, r, k, v, w=t_decay, u=t_first)
+            print(out.shape)
+            print('out start: ', out.flatten()[:30])
+            print('out end: ', out.flatten()[-30:])
+            print('s start: ', s.flatten()[:30])
+            print('s end: ', s.flatten()[-30:])
 
             out = out.reshape(T, H*N)
             out = F.group_norm(out, num_groups=H, weight=lx_w, bias=lx_b)
             out = out.to(dtype=x.dtype) * g
+            print('out start: ', out.flatten()[:30])
+            print('out end: ', out.flatten()[-30:])
+            exit(0)
             out = matmul(out, ow, omx, orx, omy, ory)
 
             return x + out, xx[-1,:], s
@@ -833,7 +860,7 @@ class RWKV(MyModule):
 
             seq_mode = len(tokens) > 1
 
-            x = w['emb.weight'][tokens if seq_mode else tokens[0]]
+            x = w['emb.weight'].to("cuda")[tokens if seq_mode else tokens[0]]
 
             for i in range(args.n_layer):
                 bbb = f'blocks.{i}.'
