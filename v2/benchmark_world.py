@@ -47,8 +47,8 @@ for q in QUESTIONS:
     ctx = f'Question: {q.strip()}\n\nAnswer:' # !!! do not use Q/A (corrupted by a dataset) or Bob/Alice (not used in training) !!!
     print(ctx, end = '')
     for i in range(200):
-        # tokens = PAD_TOKENS + pipeline.encode(ctx) if i == 0 else [token]
-        tokens = [1] * 10
+        tokens = PAD_TOKENS + pipeline.encode(ctx) if i == 0 else [token]
+        # tokens = [1] * 10
         # tokens = torch.ones(size=(1, 1024), device='cuda', dtype=torch.long)
         
         out, state = pipeline.model.forward(tokens, state)

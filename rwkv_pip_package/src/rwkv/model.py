@@ -190,6 +190,7 @@ if os.environ.get('RWKV_DML_ON') == '1':
     import torch_directml
     print("PyTorch with DirectML Enabled")
 
+
 ########################################################################################################
 
 class RWKV(MyModule):
@@ -514,6 +515,7 @@ class RWKV(MyModule):
 
     def RUN_RWKV_5(self, B, T, C, H, state, r, k, v, w, u):
         return self.RWKV_5.apply(B, T, C, H, state, r, k, v, w, u)            
+          
 
     ########################################################################################################
 
@@ -541,6 +543,7 @@ class RWKV(MyModule):
         vx = torch.square(torch.relu(matmul(kx, kw, kmx, krx, kmy, kry)))
         out = r * matmul(vx, vw, vmx, vrx, vmy, vry)
         return x + out, xx[-1,:]
+
 
     ########################################################################################################
 
@@ -810,20 +813,13 @@ class RWKV(MyModule):
             v = matmul(vx, vw, vmx, vrx, vmy, vry, output_dtype=torch.float32)
             g = F.silu(matmul(gx, gw, gmx, grx, gmy, gry))
 
-            out, s = self.RUN_RWKV_5(1, T, self.args.n_att, H, s, r, k, v, w=t_decay, u=t_first)
+            out, s = self.RUN_RWKV_5(1, T, self.args.n_att, H, s.transpose(-1,-2).contiguous(), r, k, v, w=t_decay, u=t_first)
+            s = s.transpose(-1,-2)
             # out = RUN_FORMULA_1A(1, T, self.args.n_att, H, r, k, v, w=t_decay, u=t_first)
-            print(out.shape)
-            print('out start: ', out.flatten()[:30])
-            print('out end: ', out.flatten()[-30:])
-            print('s start: ', s.flatten()[:30])
-            print('s end: ', s.flatten()[-30:])
 
             out = out.reshape(T, H*N)
             out = F.group_norm(out, num_groups=H, weight=lx_w, bias=lx_b)
             out = out.to(dtype=x.dtype) * g
-            print('out start: ', out.flatten()[:30])
-            print('out end: ', out.flatten()[-30:])
-            exit(0)
             out = matmul(out, ow, omx, orx, omy, ory)
 
             return x + out, xx[-1,:], s
